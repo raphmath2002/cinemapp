@@ -202,7 +202,7 @@ class AuthServiceImpl implements AuthServiceInterface
         $payload = base64_encode(json_encode([
             "type" => $type,
             "user_email" => $user->email,
-            "user_id" => $user->id,
+            "user_id" => $user->uuid,
             "user_roles" => $user->getRoles(),
             "created_at" => $now,
             "expire_at" => $exp

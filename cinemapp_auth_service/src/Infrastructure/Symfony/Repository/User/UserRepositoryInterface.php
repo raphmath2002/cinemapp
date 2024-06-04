@@ -9,6 +9,6 @@ interface UserRepositoryInterface
 {
     public function storeUser(User $newUser): User;
     public function getUserByEmail(string $email): ?User;
-    public function getUserById(int $userId): ?User;
+    public function getUserById(string $userUuid): ?User;
     public function updateUser(User $updatedUser);
 }

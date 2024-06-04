@@ -24,9 +24,9 @@ class UserRepositoryImpl extends ServiceEntityRepository implements UserReposito
         return $user;
     }
 
-    public function getUserById(int $userId): ?User
+    public function getUserById(string $userUuid): ?User
     {
-        $user = $this->find($userId);
+        $user = $this->findOneBy(['uuid' => $userUuid]);
 
         return $user;
     }

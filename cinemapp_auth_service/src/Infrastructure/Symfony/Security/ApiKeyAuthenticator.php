@@ -38,13 +38,17 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 
         if ($apiToken === '') $this->notValidToken();
 
+        
+
         [$header, $payload, $signatureFromUser] = explode(".", $apiToken);
 
         $signatureFromSystem = hash_hmac('sha256', "$header.$payload", $this->appSecret);
 
-        if ($signatureFromSystem === $signatureFromUser) {
 
+        if ($signatureFromSystem === $signatureFromUser) {
             $decodedPayload = base64_decode($payload);
+
+            
 
             if (json_validate($decodedPayload)) {
                 $decodedPayload = json_decode($decodedPayload, true);

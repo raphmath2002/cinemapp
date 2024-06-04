@@ -4,7 +4,7 @@ namespace Domain\Interface\UserDto;
 
 use Domain\Entity\User;
 
-class CreateUserOutput
+class UserOutput
 {
     // PROPERTIES
     private function __construct(

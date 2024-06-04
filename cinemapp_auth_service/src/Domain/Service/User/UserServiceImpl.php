@@ -4,7 +4,8 @@ namespace Domain\Service\User;
 
 use Domain\Entity\User;
 use Domain\Interface\UserDto\Input\CreateUserInput;
-use Domain\Interface\UserDto\CreateUserOutput;
+use Domain\Interface\UserDto\Input\UpdateUserInput;
+use Domain\Interface\UserDto\UserOutput;
 use Domain\Request\UpdateUserRequest;
 use Domain\Response\User\AddNewUserResponse;
 use Domain\Response\User\GetUserByIdResponse;
@@ -19,7 +20,8 @@ class UserServiceImpl implements UserServiceInterface
     public function __construct(
         protected ValidatorInterface $validator,
         protected UserRepositoryInterface $userRepository
-    ) {}
+    ) {
+    }
 
     public function addNewUser(CreateUserInput $newUserDTO): AddNewUserResponse
     {
@@ -48,36 +50,34 @@ class UserServiceImpl implements UserServiceInterface
             $hashedPass = password_hash($newUser->password, PASSWORD_BCRYPT, ['cost' => 10]);
 
             $newUser->password = $hashedPass;
-            
+
             $newUser = $this->userRepository->storeUser($newUser);
-            
         } catch (\Exception $e) {
             $response->setException($e);
             return $response;
         }
 
-        $newUserOutput = CreateUserOutput::create($newUser)->toArray();
+        $newUserOutput = UserOutput::create($newUser)->toArray();
 
         $response->setData($newUserOutput);
         $response->userCreated();
         return $response;
-    } 
+    }
 
-    public function getUserById(int $userId): GetUserByIdResponse
+    public function getUserById(string $userUuid): GetUserByIdResponse
     {
         $response = new GetUserByIdResponse();
 
         try {
-            $user = $this->userRepository->getUserById($userId);
+            $user = $this->userRepository->getUserById($userUuid);
 
-            if(is_null($user)) {
+            if (is_null($user)) {
                 $response->notFound();
                 return $response;
             }
 
             $response->fetchOk();
             $response->setData($user);
-
         } catch (\Exception $e) {
             $response->setException($e);
             return $response;
@@ -86,33 +86,38 @@ class UserServiceImpl implements UserServiceInterface
         return $response;
     }
 
-    public function updateUser(UpdateUserRequest $request): UpdateUserResponse
+    public function updateUser(UpdateUserInput $updateUserInput): UpdateUserResponse
     {
         $response = new UpdateUserResponse();
 
-        [$id, $updatedData] = array_values($request->getData());
-
-        $user = $this->userRepository->getUserById($id);
+        $user = $this->userRepository->getUserById($updateUserInput->uuid);
 
         if (is_null($user)) {
             $response->notFound();
             return $response;
         }
 
-        array_key_exists('first_name', $updatedData) && $user->first_name = $updatedData['first_name'];
-        array_key_exists('last_name', $updatedData) && $user->last_name = $updatedData['last_name'];
-        array_key_exists('email', $updatedData) && $user->email = $updatedData['email'];
-        
-        // Je sais que c'est pas bien de faire ça comme ça mais bon
-        if(array_key_exists('password', $updatedData)) {
-            $hashedPass = password_hash($updatedData['password'], PASSWORD_BCRYPT, ['cost' => 10]);
-            $user->password = $hashedPass;
+        $errors = $this->validator->validate($updateUserInput);
+
+        if (count($errors) > 0) {
+            $response->setValidationError();
+
+            foreach ($errors as $error) {
+                $response->addFieldErrorMessage(
+                    $error->getPropertyPath(),
+                    $error->getMessage()
+                );
+            }
+            return $response;
         }
 
-        array_key_exists('roles', $updatedData) && $user->setRoles($updatedData['roles']);
+        $updatedData = $updateUserInput->toArray();
 
-        array_key_exists('status', $updatedData) && $user->status = $updatedData['status'];
-
+        !is_null($updatedData['first_name']) && $user->first_name = $updatedData['first_name'];
+        !is_null($updatedData['last_name']) && $user->last_name = $updatedData['last_name'];
+        !is_null($updatedData['email']) && $user->email = $updatedData['email'];
+        !is_null($updatedData['roles']) && $user->setRoles($updatedData['roles']);
+        !is_null($updatedData['status']) && $user->status = $updatedData['status'];
 
         try {
             $this->userRepository->updateUser($user);
@@ -125,7 +130,8 @@ class UserServiceImpl implements UserServiceInterface
         return $response;
     }
 
-    private function generateUUIDv4() {
+    private function generateUUIDv4()
+    {
         $data = random_bytes(16);
         assert(strlen($data) == 16);
 

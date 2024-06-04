@@ -20,6 +20,7 @@ class AuthenticationEntryPoint implements AuthenticationEntryPointInterface
     public function start(Request $request, ?AuthenticationException $authException = null): Response
     {
         $response = new LoginResponse();
+        
         $response->nonLoggedUser();
 
         $serializedResponse = $this->serializer->serialize($response, 'json', [AbstractObjectNormalizer::SKIP_NULL_VALUES => true]);
